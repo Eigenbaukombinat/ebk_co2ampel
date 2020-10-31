@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include "MHZ19.h"
 #include "SSD1306Wire.h"
+
+#include <Adafruit_NeoPixel.h>
+
 #define RX_PIN 16
 #define TX_PIN 17
 #define BAUDRATE 9600
@@ -9,6 +12,11 @@ MHZ19 myMHZ19;
 
 HardwareSerial mySerial(1);
 SSD1306Wire  display(0x3c, 21, 22);
+
+// When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
+// Note that for older NeoPixel strips you might need to change the third parameter--see the strandtest
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(1, 4, NEO_GRB + NEO_KHZ800);
+ 
 
 unsigned long getDataTimer = 0;
 int lastvals[120];
@@ -29,7 +37,9 @@ void setup()
   for (int x; x <= 119; x = x + 1) {
     lastvals[x] = -1;
   }
-
+pixels.begin(); // This initializes the NeoPixel library.
+pixels.setPixelColor(0, pixels.Color(255,0,0)); // Moderately bright green color.
+pixels.show(); 
 }
 
 
