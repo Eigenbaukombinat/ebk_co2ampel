@@ -34,7 +34,9 @@ LED: ws2812 ("Single Chip") [3]
 
 
 [1]: Lieferzeiten China 1-3 Wochen bei hohen Versandkosten (30-40€)
+
 [2]: Sensor in Deutschland derzeit nicht erhältlich, Preis oben ist aus Belgien, Lieferzeit ca. 1-2 Wochen
+
 [3]: ![](https://pads.eigenbaukombinat.de/uploads/upload_4b9853a860606dc2a45d012b6480e01c.png)
 
 
