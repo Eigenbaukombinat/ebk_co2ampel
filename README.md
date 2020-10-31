@@ -26,18 +26,16 @@ Eine RGB-LED zeigt rot, gelb oder grün, je nach Messwert.
 | **SUMME** | **23,80 €** | **42,20 €** |
 
 
-Sensor: Infrared CO2 Sensor	mh-z19
-ESP32: Mikrocontroller
-Buzzer: Active piezzo buzzer KY-012
-Display: OLED Display SSD1306	
-LED: ws2812 ("Single Chip") [3]
+* Sensor: Infrared CO2 Sensor	mh-z19
+* ESP32: Mikrocontroller
+* Buzzer: Active piezzo buzzer KY-012
+* Display: OLED Display SSD1306	
+* LED: ws2812 ("Single Chip")
 
 
 [1]: Lieferzeiten China 1-3 Wochen bei hohen Versandkosten (30-40€)
 
 [2]: Sensor in Deutschland derzeit nicht erhältlich, Preis oben ist aus Belgien, Lieferzeit ca. 1-2 Wochen
-
-[3]: ![](https://pads.eigenbaukombinat.de/uploads/upload_4b9853a860606dc2a45d012b6480e01c.png)
 
 
 ## Flashen
