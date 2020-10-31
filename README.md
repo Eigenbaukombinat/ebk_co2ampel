@@ -40,34 +40,7 @@ Eine RGB-LED zeigt rot, gelb oder grün, je nach Messwert.
 
 ## Flashen
 
-Wir benutzen bisher die Arduino IDE. 
-
-### ESP32 Boarddefinitionen
-
-Falls noch nicht geschehen, müssen die Boarddefinitionen für den ESP32 installiert werden. Hierzu im Menü: Datei -> Voreinstellungen. Im Fenster dann bei "Zusätzliche Boardverwalter-URLs" diese URL eintragen:
-
-```
-https://dl.espressif.com/dl/package_esp32_index.json
-```
-
-Sollte dort schon etwas anderes drin stehen, mit einem Komma getrennt dazuschreiben.
-
-Danach im Menü: Werkzeuge -> Board -> Boardverwalter nach "ESP32" suchen, und installieren.
-
-### Libraries
-
-Die benötigten Libraries installieren wir über die Bibliotheksverwaltung der Arduino IDE (Menü: Sketch -> Bibliothek einbinden -> Bibliotheken verwalten…), und zwar:
-
-* [MH-Z19](https://github.com/crisap94/MHZ19) für das Auslesen des Sensors
-* [ESP8266 and ESP32 OLED driver for SSD1306 displays](https://github.com/ThingPulse/esp8266-oled-ssd1306) für die Ansteuerung des Displays
-
-### Flashen
-
-* Als Board muss "ESP32 Dev Module" ausgewählt sein.
-
-* Mit Strg+U kompilieren und auf den ESP laden.
-
-
+Wir benutzen die PlatformIO IDE. Dort kann das Projekt geöffnet und mit Klick auf "Upload" compiliert und auf den ESP32 geladen werden.
 
 
 ## Wiring
