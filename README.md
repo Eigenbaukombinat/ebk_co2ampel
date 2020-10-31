@@ -1,4 +1,4 @@
-# CO² Ampel
+# Projekt: CO² Ampel
 
 Implementierung einer CO² Ampel mit ESP32 + MH-Z19B + SSD1306.
 
@@ -12,12 +12,37 @@ Auf dem Display erscheint nur der aktuelle Wert und der historische Verlauf der 
 
 Eine RGB-LED zeigt rot, gelb oder grün, je nach Messwert.
 
+## BOM
 
-# Flashen
+
+| Teil      | Preis China [^1] | Preis DE    |
+| --------- | ----------- | ----------- |
+| Sensor    | 20 €        | 25 € [^2]   |
+| ESP32     | 0,50 €      | 8 €         |
+| Buzzer    | 0,20 €      | 3 €         |
+| Display   | 3 €         | 6 €         |
+| LED       | 0,10 €      | 0,20 €      |
+|           |             |             |
+| **SUMME** | **23,80 €** | **42,20 €** |
+
+
+Sensor: Infrared CO2 Sensor	mh-z19
+ESP32: Mikrocontroller
+Buzzer: Active piezzo buzzer KY-012
+Display: OLED Display SSD1306	
+LED: ws2812 ("Single Chip") [^3]
+
+
+[^1]: Lieferzeiten China 1-3 Wochen bei hohen Versandkosten (30-40€)
+[^2]: Sensor in Deutschland derzeit nicht erhältlich, Preis oben ist aus Belgien, Lieferzeit ca. 1-2 Wochen
+[^3]: ![](https://pads.eigenbaukombinat.de/uploads/upload_4b9853a860606dc2a45d012b6480e01c.png)
+
+
+## Flashen
 
 Wir benutzen bisher die Arduino IDE. 
 
-## ESP32 Boarddefinitionen
+### ESP32 Boarddefinitionen
 
 Falls noch nicht geschehen, müssen die Boarddefinitionen für den ESP32 installiert werden. Hierzu im Menü: Datei -> Voreinstellungen. Im Fenster dann bei "Zusätzliche Boardverwalter-URLs" diese URL eintragen:
 
@@ -29,14 +54,14 @@ Sollte dort schon etwas anderes drin stehen, mit einem Komma getrennt dazuschrei
 
 Danach im Menü: Werkzeuge -> Board -> Boardverwalter nach "ESP32" suchen, und installieren.
 
-## Libraries
+### Libraries
 
 Die benötigten Libraries installieren wir über die Bibliotheksverwaltung der Arduino IDE (Menü: Sketch -> Bibliothek einbinden -> Bibliotheken verwalten…), und zwar:
 
 * [MH-Z19](https://github.com/crisap94/MHZ19) für das Auslesen des Sensors
 * [ESP8266 and ESP32 OLED driver for SSD1306 displays](https://github.com/ThingPulse/esp8266-oled-ssd1306) für die Ansteuerung des Displays
 
-## Flashen
+### Flashen
 
 * Als Board muss "ESP32 Dev Module" ausgewählt sein.
 
@@ -45,6 +70,6 @@ Die benötigten Libraries installieren wir über die Bibliotheksverwaltung der A
 
 
 
-# Wiring
+## Wiring
 
 bild: todo
