@@ -18,12 +18,12 @@ Eine RGB-LED zeigt rot, gelb oder grün, je nach Messwert.
 | Teil      | Preis China [1] | Preis DE    |
 | --------- | ----------- | ----------- |
 | Sensor    | 20 €        | 25 € [2]   |
-| ESP32     | 0,50 €      | 8 €         |
+| ESP32     | 5 €         | 8 €         |
 | Buzzer    | 0,20 €      | 3 €         |
 | Display   | 3 €         | 6 €         |
 | LED       | 0,10 €      | 0,20 €      |
 |           |             |             |
-| **SUMME** | **23,80 €** | **42,20 €** |
+| **SUMME** | **28,30 €** | **42,20 €** |
 
 
 * Sensor: Infrared CO2 Sensor	mh-z19
