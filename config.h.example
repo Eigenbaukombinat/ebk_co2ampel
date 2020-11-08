@@ -1,0 +1,2 @@
+#define SSID "co2ampel";
+#define PASSWORD "<change this!>";
