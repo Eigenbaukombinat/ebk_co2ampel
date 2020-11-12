@@ -5,10 +5,10 @@
 
 // Maximum CO² levels for green and yellow, everything above is considered red.
 #define GREEN_CO2 800
-#define YELLOW_CO2 1500
+#define YELLOW_CO2 1000
 
 // Measurement interval in miliseconds
-#define INTERVAL 10000
+#define INTERVAL 60000
 
 // Pins for MH-Z19
 #define RX_PIN 16
@@ -21,10 +21,13 @@
 // Pin for LED
 #define LED_PIN 4
 
+// number of LEDs connected
+#define NUMPIXELS 12
+
 MHZ19 myMHZ19;
 HardwareSerial mySerial(1);
 SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN);
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(1, LED_PIN, NEO_RGB + NEO_KHZ400);
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_KHZ400);
  
 unsigned long getDataTimer = 0;
 int lastvals[120];
@@ -34,19 +37,24 @@ void setup() {
   Serial.begin(9600);
   mySerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   myMHZ19.begin(mySerial);
+  pixels.clear();
   display.init();
   display.setContrast(255);
   delay(1000);
   display.clear();
+  display.flipScreenVertically();
   dheight = display.getHeight();
   myMHZ19.autoCalibration();
   // Fill array of last measurements with -1
   for (int x = 0; x <= 119; x = x + 1) {
     lastvals[x] = -1;
   }
+  
   pixels.begin();
-  pixels.setPixelColor(0, 30,0,0);
-  pixels.show(); 
+  for(int i=0; i<NUMPIXELS; i++) {
+    pixels.setPixelColor(i, pixels.Color(0, 0, 50));
+    pixels.show(); 
+  }
 }
 
 int calc_vpos_for_co2(int co2val, int display_height) {
@@ -56,13 +64,22 @@ int calc_vpos_for_co2(int co2val, int display_height) {
 void set_led_color(int co2) {
   if (co2 < GREEN_CO2) {
     // Green
-    pixels.setPixelColor(0, 30,0,0);
+      for(int i=0; i<NUMPIXELS; i++) {
+        pixels.setPixelColor(i, 30,0,0);
+        pixels.show();
+      }
   } else if (co2 < YELLOW_CO2) {
     // Yellow
-    pixels.setPixelColor(0, 40,40, 0);
+          for(int i=0; i<NUMPIXELS; i++) {
+        pixels.setPixelColor(i, 40,40,0);
+        pixels.show();
+      }
   } else {
     // Red
-    pixels.setPixelColor(0, 0,90,0);
+              for(int i=0; i<NUMPIXELS; i++) {
+        pixels.setPixelColor(i, 0,90,0);
+        pixels.show();
+      }
   }
   pixels.show();
 }
@@ -90,7 +107,9 @@ void loop() {
     // Set LED color and print value on display
     set_led_color(CO2);
     display.setLogBuffer(1, 30);
-    display.println(CO2);
+    display.setFont(Cousine_Regular_54);
+    display.setTextAlignment(TEXT_ALIGN_CENTER);
+    display.drawString(64 ,0 , String(CO2));
     display.drawLogBuffer(0, 0);
     display.display();
     // Debug output
