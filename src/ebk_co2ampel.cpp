@@ -2,13 +2,14 @@
 #include "MHZ19.h"
 #include "SSD1306Wire.h"
 #include <Adafruit_NeoPixel.h>
+#include "fonts-custom.h"
 
 // Maximum CO² levels for green and yellow, everything above is considered red.
 #define GREEN_CO2 800
 #define YELLOW_CO2 1000
 
 // Measurement interval in miliseconds
-#define INTERVAL 60000
+#define INTERVAL 15000
 
 // Pins for MH-Z19
 #define RX_PIN 16
@@ -24,6 +25,7 @@
 // number of LEDs connected
 #define NUMPIXELS 12
 
+
 MHZ19 myMHZ19;
 HardwareSerial mySerial(1);
 SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN);
@@ -32,9 +34,11 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_K
 unsigned long getDataTimer = 0;
 int lastvals[120];
 int dheight;
-
+String ampelversion = "smash20201117-01";
 void setup() {
   Serial.begin(9600);
+  Serial.println("boot...");
+  Serial.println(ampelversion);
   mySerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   myMHZ19.begin(mySerial);
   pixels.clear();
@@ -114,7 +118,9 @@ void loop() {
     display.display();
     // Debug output
     Serial.print("CO2 (ppm): ");
-    Serial.println(CO2);
+    Serial.print(CO2);
+    Serial.print(" uptime (seconds): ");
+    Serial.println(millis()/1000);
     getDataTimer = millis();
   }
 }
