@@ -3,6 +3,7 @@
 #include "SSD1306Wire.h"
 #include <Adafruit_NeoPixel.h>
 #include "fonts-custom.h"
+#include <Preferences.h>
 
 // Maximum CO² levels for green and yellow, everything above is considered red.
 #define GREEN_CO2 800
@@ -25,6 +26,7 @@
 // number of LEDs connected
 #define NUMPIXELS 12
 
+Preferences preferences;
 
 MHZ19 myMHZ19;
 HardwareSerial mySerial(1);
@@ -34,21 +36,47 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_K
 unsigned long getDataTimer = 0;
 int lastvals[120];
 int dheight;
-String ampelversion = "smash20201117-01";
+String ampelversion = "0.1";
+int safezone = 1;
+int tocalibrateornot;
+
+
 void setup() {
   Serial.begin(9600);
   Serial.println("boot...");
+  preferences.begin("co2", false);
+  tocalibrateornot = preferences.getUInt("cal",13); // wir lesen unser flag ein, 23 = reboot vor safezone, wir wollen kalibrieren, 42 = reboot nach safezone, wir tun nichts
+  preferences.putUInt("cal", 23);  // wir sind gerade gestartet
   Serial.println(ampelversion);
   mySerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   myMHZ19.begin(mySerial);
   pixels.clear();
   display.init();
   display.setContrast(255);
-  delay(1000);
+  delay(500);
   display.clear();
   display.flipScreenVertically();
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.drawString(64 ,0 , String(ampelversion));
+  display.display();
   dheight = display.getHeight();
-  myMHZ19.autoCalibration();
+  // myMHZ19.autoCalibration();
+  Serial.print("read EEPROM value: ");
+  Serial.println(tocalibrateornot);
+  if (tocalibrateornot == 23){
+    Serial.println("brace yourself, calibration starting! things either be better or all fucked up beyond this point...");
+    display.drawString(64, 20, "Calibration!");
+    display.display();
+    myMHZ19.setRange(2000);
+    myMHZ19.calibrateZero();
+    myMHZ19.setSpan(2000);
+    myMHZ19.autoCalibration(false);
+    Serial.println("calibration done");
+    Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
+  }
+  else if (tocalibrateornot ==42){
+    Serial.println("fake news, nobody has the intention to do calibration....");
+  }
   // Fill array of last measurements with -1
   for (int x = 0; x <= 119; x = x + 1) {
     lastvals[x] = -1;
@@ -89,6 +117,14 @@ void set_led_color(int co2) {
 }
 
 void loop() {
+  if (safezone == 1){
+  if (millis() == 10000) {
+    Serial.println(" safe zone, sensor stayed up longer than 10s");
+    preferences.putUInt("cal", 42);  // wir haben die safe zone erreicht, beim naechsten boot nicht kalibrieren!
+    safezone = 0;
+  }
+  }
+
   if (millis() - getDataTimer >= INTERVAL) {
     // Get new CO² value.
     int CO2 = myMHZ19.getCO2();
