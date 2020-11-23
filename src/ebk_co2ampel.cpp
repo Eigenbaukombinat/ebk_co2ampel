@@ -24,14 +24,14 @@
 #define LED_PIN 4
 
 // number of LEDs connected
-#define NUMPIXELS 12
+#define NUMPIXELS 8
 
 Preferences preferences;
 
 MHZ19 myMHZ19;
 HardwareSerial mySerial(1);
 SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN);
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_KHZ400);
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_KHZ800);
  
 unsigned long getDataTimer = 0;
 int lastvals[120];
@@ -114,7 +114,7 @@ void setup() {
   
   pixels.begin();
   for(int i=0; i<NUMPIXELS; i++) {
-    pixels.setPixelColor(i, pixels.Color(0, 0, 50));
+    pixels.setPixelColor(i, 0,0,50);
     pixels.show(); 
   }
 }
@@ -128,19 +128,16 @@ void set_led_color(int co2) {
     // Green
       for(int i=0; i<NUMPIXELS; i++) {
         pixels.setPixelColor(i, 30,0,0);
-        pixels.show();
       }
   } else if (co2 < YELLOW_CO2) {
     // Yellow
           for(int i=0; i<NUMPIXELS; i++) {
         pixels.setPixelColor(i, 40,40,0);
-        pixels.show();
       }
   } else {
     // Red
               for(int i=0; i<NUMPIXELS; i++) {
         pixels.setPixelColor(i, 0,90,0);
-        pixels.show();
       }
   }
   pixels.show();
