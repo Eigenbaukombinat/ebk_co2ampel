@@ -83,6 +83,7 @@ void setup() {
     display.clear();
     display.drawString(64, 0, "DONE");
     display.display();
+    preferences.putUInt("cal", 42);
     char myVersion[4];          
     myMHZ19.getVersion(myVersion);
     Serial.print("\nFirmware Version: ");
