@@ -45,13 +45,14 @@ void setup() {
   Serial.begin(9600);
   Serial.println("boot...");
   preferences.begin("co2", false);
-  tocalibrateornot = preferences.getUInt("cal",13); // wir lesen unser flag ein, 23 = reboot vor safezone, wir wollen kalibrieren, 42 = reboot nach safezone, wir tun nichts
+  tocalibrateornot = preferences.getUInt("cal",69); // wir lesen unser flag ein, 23 = reboot vor safezone, wir wollen kalibrieren, 42 = reboot nach safezone, wir tun nichts
   preferences.putUInt("cal", 23);  // wir sind gerade gestartet
   Serial.println(ampelversion);
   mySerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   myMHZ19.begin(mySerial);
   pixels.clear();
   display.init();
+  display.setFont(Cousine_Regular_54);
   display.setContrast(255);
   delay(500);
   display.clear();
@@ -65,12 +66,40 @@ void setup() {
   Serial.println(tocalibrateornot);
   if (tocalibrateornot == 23){
     Serial.println("brace yourself, calibration starting! things either be better or all fucked up beyond this point...");
-    display.drawString(64, 20, "Calibration!");
+    display.drawString(64, 20, "CAL!");
     display.display();
-    myMHZ19.setRange(2000);
+    for(int i=60; i > 0; i--){
+      display.clear();
+      display.drawString(64, 0, String(i));
+      display.display();
+      delay(1000);
+    }
+    myMHZ19.setRange(5000);
+    delay(500);
     myMHZ19.calibrateZero();
-    myMHZ19.setSpan(2000);
+    delay(500);
     myMHZ19.autoCalibration(false);
+    delay(500);
+    display.clear();
+    display.drawString(64, 0, "DONE");
+    display.display();
+    char myVersion[4];          
+    myMHZ19.getVersion(myVersion);
+    Serial.print("\nFirmware Version: ");
+    for(byte i = 0; i < 4; i++)
+    {
+     Serial.print(myVersion[i]);
+     if(i == 1)
+       Serial.print(".");    
+    }
+    Serial.println("");
+
+    Serial.print("Range: ");
+    Serial.println(myMHZ19.getRange());   
+    Serial.print("Background CO2: ");
+    Serial.println(myMHZ19.getBackgroundCO2());
+    Serial.print("Temperature Cal: ");
+    Serial.println(myMHZ19.getTempAdjustment());
     Serial.println("calibration done");
     Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
   }
@@ -155,6 +184,8 @@ void loop() {
     // Debug output
     Serial.print("CO2 (ppm): ");
     Serial.print(CO2);
+    Serial.print(" Background CO2: ");
+    Serial.print(myMHZ19.getBackgroundCO2());
     Serial.print(" uptime (seconds): ");
     Serial.println(millis()/1000);
     getDataTimer = millis();
