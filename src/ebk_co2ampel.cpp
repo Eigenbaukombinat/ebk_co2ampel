@@ -24,7 +24,7 @@
 #define LED_PIN 4
 
 // number of LEDs connected
-#define NUMPIXELS 8
+#define NUMPIXELS 12
 
 Preferences preferences;
 
@@ -39,6 +39,9 @@ int dheight;
 String ampelversion = "0.1";
 int safezone = 1;
 int tocalibrateornot;
+int firstloop = 1;
+
+
 
 
 void setup() {
@@ -61,52 +64,9 @@ void setup() {
   display.drawString(64 ,0 , String(ampelversion));
   display.display();
   dheight = display.getHeight();
-  // myMHZ19.autoCalibration();
   Serial.print("read EEPROM value: ");
   Serial.println(tocalibrateornot);
-  if (tocalibrateornot == 23){
-    Serial.println("brace yourself, calibration starting! things either be better or all fucked up beyond this point...");
-    display.drawString(64, 20, "CAL!");
-    display.display();
-    for(int i=60; i > 0; i--){
-      display.clear();
-      display.drawString(64, 0, String(i));
-      display.display();
-      delay(1000);
-    }
-    myMHZ19.setRange(5000);
-    delay(500);
-    myMHZ19.calibrateZero();
-    delay(500);
-    myMHZ19.autoCalibration(false);
-    delay(500);
-    display.clear();
-    display.drawString(64, 0, "DONE");
-    display.display();
-    preferences.putUInt("cal", 42);
-    char myVersion[4];          
-    myMHZ19.getVersion(myVersion);
-    Serial.print("\nFirmware Version: ");
-    for(byte i = 0; i < 4; i++)
-    {
-     Serial.print(myVersion[i]);
-     if(i == 1)
-       Serial.print(".");    
-    }
-    Serial.println("");
 
-    Serial.print("Range: ");
-    Serial.println(myMHZ19.getRange());   
-    Serial.print("Background CO2: ");
-    Serial.println(myMHZ19.getBackgroundCO2());
-    Serial.print("Temperature Cal: ");
-    Serial.println(myMHZ19.getTempAdjustment());
-    Serial.println("calibration done");
-    Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
-  }
-  else if (tocalibrateornot ==42){
-    Serial.println("fake news, nobody has the intention to do calibration....");
-  }
   // Fill array of last measurements with -1
   for (int x = 0; x <= 119; x = x + 1) {
     lastvals[x] = -1;
@@ -143,15 +103,18 @@ void set_led_color(int co2) {
   pixels.show();
 }
 
-void loop() {
-  if (safezone == 1){
-  if (millis() == 10000) {
-    Serial.println(" safe zone, sensor stayed up longer than 10s");
-    preferences.putUInt("cal", 42);  // wir haben die safe zone erreicht, beim naechsten boot nicht kalibrieren!
-    safezone = 0;
-  }
-  }
 
+void rainbow(int wait) {
+  for(long firstPixelHue = 0; firstPixelHue < 65536; firstPixelHue += 256) {
+    for(int i=0; i<NUMPIXELS; i++) {
+      int pixelHue = firstPixelHue + (i * 65536L / NUMPIXELS);
+      pixels.setPixelColor(i, pixels.gamma32(pixels.ColorHSV(pixelHue)));
+    }
+    pixels.show();
+    delay(wait);
+  }
+}
+void readco2(){
   if (millis() - getDataTimer >= INTERVAL) {
     // Get new CO² value.
     int CO2 = myMHZ19.getCO2();
@@ -189,3 +152,70 @@ void loop() {
     getDataTimer = millis();
   }
 }
+
+
+
+
+void loop() {
+  if (safezone == 1){
+      if (tocalibrateornot == 23){                
+          if (millis() < 180000){
+            rainbow(10);
+            display.clear();
+            display.drawString(64, 0, String(180 - millis()/1000));
+            display.display();
+            }
+          else if (millis() >= 180000){
+            display.drawString(64, 0, "CAL!");
+            Serial.println("brace yourself, calibration starting! things either be better or all fucked up beyond this point...");
+            myMHZ19.setRange(5000);
+            delay(500);
+            myMHZ19.calibrateZero();
+            delay(500);
+            myMHZ19.autoCalibration(false);
+            delay(500);
+            display.clear();
+            display.drawString(64, 0, "DONE");
+            display.display();
+            preferences.putUInt("cal", 42);
+            char myVersion[4];          
+            myMHZ19.getVersion(myVersion);
+            Serial.print("\nFirmware Version: ");
+              for(byte i = 0; i < 4; i++)
+                {
+                Serial.print(myVersion[i]);
+                if(i == 1)
+                  Serial.print(".");    
+                }
+              Serial.println("");
+
+              Serial.print("Range: ");
+              Serial.println(myMHZ19.getRange());   
+              Serial.print("Background CO2: ");
+              Serial.println(myMHZ19.getBackgroundCO2());
+              Serial.print("Temperature Cal: ");
+              Serial.println(myMHZ19.getTempAdjustment());
+              Serial.println("calibration done");
+              Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
+              display.clear();
+              safezone = 0;
+              }
+        }
+    else if (tocalibrateornot ==42){
+      if(firstloop==1){
+        Serial.println("fake news, nobody has the intention to do calibration....");
+        firstloop=0;
+      }
+      if (millis() > 10000) {
+        Serial.println(" safe zone, sensor stayed up long enough");
+        preferences.putUInt("cal", 42);  // wir haben die safe zone erreicht, beim naechsten boot nicht kalibrieren!
+        safezone = 0;
+      }
+  }
+  }
+  else if (safezone == 0){
+     readco2();
+  }
+ 
+}
+
