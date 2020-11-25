@@ -37,9 +37,10 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_K
  
 unsigned long getDataTimer = 0;
 unsigned long getDataTimer1 = 0;
+int countdown = 0;
 int lastvals[120];
 int dheight;
-String ampelversion = "0.1";
+String ampelversion = "0.11";
 int safezone = 1;
 int tocalibrateornot;
 int initloop = 1;
@@ -207,7 +208,7 @@ void readco2(){
       }
     }
     // Set LED color and print value on display
-    set_led_color(CO2);
+    if (tocalibrateornot == 42) {set_led_color(CO2);}
     //display.setLogBuffer(1, 30);
     display.setFont(Cousine_Regular_54);
     display.setTextAlignment(TEXT_ALIGN_CENTER);
@@ -218,6 +219,7 @@ void readco2(){
     Serial.print("CO2 (ppm): ");
     Serial.print(CO2);
     Serial.print(" Background CO2: " + String(myMHZ19.getBackgroundCO2()));
+    Serial.print(" Temperature: " + String(myMHZ19.getTemperature()) + " Temperature Adjustment: " + String(myMHZ19.getTempAdjustment()));
     //Serial.print(myMHZ19.getBackgroundCO2());
     Serial.println(" uptime: " + uptime_formatter::getUptime());
 
@@ -241,11 +243,15 @@ void loop() {
       }
   if (safezone == 0){    
       if (tocalibrateornot == 23){          
-          if (millis() - getDataTimer1 < CALINTERVAL) {
+          if (millis() - getDataTimer1 <= CALINTERVAL) {
             rainbow(10);
             display.clear();
             display.setTextAlignment(TEXT_ALIGN_CENTER);
-            display.drawString(64, 0, String(180 - millis()/1000));
+            //countdown = (CALINTERVAL - (getDataTimer1 + millis() * -1)) / 1000;
+            //countdown = (millis() + getDataTimer1 - CALINTERVAL) * -1 / 1000;
+            countdown = ((getDataTimer1 + CALINTERVAL) - millis()) / 1000;
+            Serial.println("Countdown: " + String(countdown));
+            display.drawString(64, 0, String(countdown));
             display.display();
             }
           else if (millis() - getDataTimer1 >= CALINTERVAL) {
