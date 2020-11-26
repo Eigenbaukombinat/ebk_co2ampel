@@ -47,25 +47,34 @@ int countdown = 0;
 int lastvals[120];
 int dheight;
 int safezone = false;
-int tocalibrateornot;
+int currentBootMode;
 
-void switchBootMode(int bm){
-  switch (bm){
+void setBootMode(int bootMode) {
+  if(bootMode == BOOT_NORMAL) { 
+    Serial.println("Startmodus nächster Reboot: Messmodus");
+    preferences.putUInt("cal", bootMode);
+  }
+  else if(bootMode == BOOT_CALIBRATE) {
+    Serial.println("Startmodus nächster Reboot: Kalibrierungsmodus");
+    preferences.putUInt("cal", bootMode);
+  } else {
+    Serial.println("Unerwarteter Boot-Mode soll gespeichert werden. Abgebrochen.");
+  } 
+}
+
+void toggleBootMode(int bootMode) {
+  switch (bootMode){
     case BOOT_CALIBRATE:
-      preferences.putUInt("cal", BOOT_NORMAL);
-      Serial.println("Startmodus nächster Reboot: Messmodus");
-      break;
+      setBootMode(BOOT_NORMAL);   break;
     case BOOT_NORMAL:
-      preferences.putUInt("cal", BOOT_CALIBRATE);
-      Serial.println("Startmodus nächster Reboot: Kalibrierungsmodus");
-      break;
+      setBootMode(BOOT_CALIBRATE); break;
     case BOOT_UNKNOWN:
-      Serial.println("EEPROM lesen war nicht möglich!");
-      break;
+      Serial.println("Bootmode Unbekannt! Neue Ampel? Nächster Start wird Messmodus.");
+      setBootMode(BOOT_NORMAL);   break;
     default:
-      Serial.print("EEPROM lesen lieferte unerwarteten Wert: ");
-      Serial.println(bm);
-      break;
+      Serial.print("Unerwarteter Bootmode-Wert: "); Serial.println(bootMode);
+      Serial.println("Nächster Start wird Messmodus.");
+      setBootMode(BOOT_NORMAL);   break;
   }
 }
 
@@ -76,11 +85,10 @@ void setup() {
 
   // Ab hier Bootmodus initialisieren und festlegen
   preferences.begin("co2", false);
-  tocalibrateornot = preferences.getUInt("cal", BOOT_UNKNOWN); // wir lesen unser flag ein,
-                                                    // 23 = reboot vor safezone, wir wollen kalibrieren,
-                                                    // 42 = reboot nach safezone, wir tun nichts
-  preferences.putUInt("cal", BOOT_CALIBRATE);  // wir sind gerade gestartet
-  switch(tocalibrateornot){
+  currentBootMode = preferences.getUInt("cal", BOOT_UNKNOWN);  // Aktuellen Boot-Mode lesen und speichern
+  preferences.putUInt("cal", BOOT_CALIBRATE);    // Erstmal Boot-Mode auf Kalibrieren setzen, wird später 
+                                                 // nach 10 Sekunden Betrieb auf Normal geändert.
+  switch(currentBootMode){
     case BOOT_CALIBRATE:
       Serial.println("Startmodus Aktuell: Kalibrierungsmodus");
       break;
@@ -113,7 +121,7 @@ void setup() {
   Serial.print("Background CO2: ");  Serial.println(myMHZ19.getBackgroundCO2());
   Serial.print("Temperature Cal: ");  Serial.println(myMHZ19.getTempAdjustment());
   Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
-  Serial.print("read EEPROM value: ");  Serial.println(tocalibrateornot);
+  Serial.print("read EEPROM value: ");  Serial.println(currentBootMode);
 
   // Liste der Messwerte mit "-1" befüllen ("-1" wird beinm Graph nicht gezeichnet)
   for (int x = 0; x <= 119; x = x + 1) {
@@ -126,7 +134,7 @@ void setup() {
   pixels.fill(pixels.Color(0,0,0));
   pixels.show(); 
   
-  switchBootMode(tocalibrateornot); // beim nächsten boot im anderen modus starten
+  toggleBootMode(currentBootMode); // beim nächsten boot im anderen modus starten
 }
 
 int calc_vpos_for_co2(int co2val, int display_height) {
@@ -196,7 +204,7 @@ void readCO2(){
       }
     }
     // Farbe des LED-Rings setzen
-    if (tocalibrateornot == BOOT_NORMAL) { set_led_color(CO2); }
+    if (currentBootMode == BOOT_NORMAL) { set_led_color(CO2); }
     //display.setLogBuffer(1, 30);
     display.setFont(Cousine_Regular_54);
     display.setTextAlignment(TEXT_ALIGN_CENTER);
@@ -216,15 +224,14 @@ void readCO2(){
 }
 
 void loop() {
-  if (millis() > 10000) {
+  if ( (!safezone) & (millis() > 10000) ) {
     Serial.println("=== 10 Sekunden im Betrieb, nächster Boot im Normalmodus ===");
-    switchBootMode(BOOT_CALIBRATE);
-    // preferences.putUInt("cal", NORMAL);  // wir haben die safe zone erreicht, beim naechsten boot nicht kalibrieren!
+    setBootMode(BOOT_NORMAL);   //
     safezone = true;
   }
   
   if (safezone){    
-    if (tocalibrateornot == BOOT_CALIBRATE){          
+    if (currentBootMode == BOOT_CALIBRATE){          
       if (millis() - getDataTimer1 <= CALINTERVAL) {
         rainbow(10);
         display.clear();
