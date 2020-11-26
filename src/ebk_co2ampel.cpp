@@ -153,24 +153,26 @@ void rainbow(int wait) {
   }
 }
 
-void calibrateCO2(){
-            display.clear();
-            display.drawString(64, 0, "CAL!");
-            display.display();
-            Serial.println("brace yourself, calibration starting! things either be better or all fucked up beyond this point...");
-            myMHZ19.setRange(5000);
-            delay(500);
-            myMHZ19.calibrateZero();
-            delay(500);
-            myMHZ19.autoCalibration(false);
-            delay(500);
-            display.clear();
-            display.drawString(64, 0, "DONE");
-            display.display();
-            preferences.putUInt("cal", 42);
-            display.clear();
+void calibrateCO2() {
+  display.setFont(ArialMT_Plain_24);
+  display.clear();  display.drawString(64, 0, "Kalibriere!"); display.display();
+  Serial.println("Kalibrierung startet nun");
+  
+  myMHZ19.setRange(5000);
+  delay(500);
+  myMHZ19.calibrateZero();
+  delay(500);
+  myMHZ19.autoCalibration(false);
+  delay(500);
+  
+  display.clear(); display.drawString(64, 0, "Fertig!"); display.display();
+  preferences.putUInt("cal", 42);
+  delay(2000);
+
+  display.clear(); display.setFont(Cousine_Regular_54);
 }
-void readco2(){
+
+void readCO2(){
   if (millis() - getDataTimer >= INTERVAL) {
     // Neuen CO2 Wert lesen
     int CO2 = myMHZ19.getCO2();
@@ -199,31 +201,27 @@ void readco2(){
     //display.drawLogBuffer(0, 0);
     display.display();
     // Ein wenig Debug-Ausgabe
-    Serial.print("CO2 (ppm): ");
+    Serial.print("Neue Messung - Aktueller CO2-Wert: ");
     Serial.print(CO2);
-    Serial.print(" Background CO2: " + String(myMHZ19.getBackgroundCO2()));
-    Serial.print(" Temperature: " + String(myMHZ19.getTemperature()) + " Temperature Adjustment: " + String(myMHZ19.getTempAdjustment()));
+    Serial.print("; Background CO2: " + String(myMHZ19.getBackgroundCO2()));
+    Serial.print("; Temperatur: " + String(myMHZ19.getTemperature()) + " Temperature Adjustment: " + String(myMHZ19.getTempAdjustment()));
     //Serial.print(myMHZ19.getBackgroundCO2());
-    Serial.println(" uptime: " + uptime_formatter::getUptime());
+    Serial.println("; uptime: " + uptime_formatter::getUptime());
 
     getDataTimer = millis();
   }
 }
 
-
-
-
-
 void loop() {
-        if (initloop == 1) {
-          if (millis() > 10000) {
-        Serial.println("=== safe zone ===");
-        switchBootMode(23);
-        // preferences.putUInt("cal", 42);  // wir haben die safe zone erreicht, beim naechsten boot nicht kalibrieren!
-        safezone = 0;
-        initloop = 0;
-          }
+  if (initloop == 1) {
+    if (millis() > 10000) {
+      Serial.println("=== safe zone ===");
+      switchBootMode(23);
+      // preferences.putUInt("cal", 42);  // wir haben die safe zone erreicht, beim naechsten boot nicht kalibrieren!
+      safezone = 0; initloop = 0;
       }
+    }
+  
   if (safezone == 0){    
       if (tocalibrateornot == 23){          
           if (millis() - getDataTimer1 <= CALINTERVAL) {
@@ -242,17 +240,15 @@ void loop() {
             getDataTimer1 = millis();
              }
         }
-    else if (tocalibrateornot ==42){
+    else if (tocalibrateornot ==42) {
       if(initloop==1){
         Serial.println("fake news, nobody has the intention to do calibration....");
         initloop=0;
       }
 
-  }
+    }
   }
   
- readco2();
-  
- 
+  readCO2();
 }
 
