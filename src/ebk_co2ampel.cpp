@@ -6,27 +6,28 @@
 #include <Preferences.h>
 #include "uptime_formatter.h"
 
-// Maximum CO² levels for green and yellow, everything above is considered red.
+// Grenzwerte für die CO2 Werte für grün und gelb, alles überhalb davon bedeutet rot
 #define GREEN_CO2 800
 #define YELLOW_CO2 1000
 
-// Measurement interval in miliseconds
-#define INTERVAL 15000
-#define CALINTERVAL 180000
+// CO2 Messintervall in Milisekunden
+#define INTERVAL 15*1000
+// Dauer der Kalibrierungsphase in Milisekunden
+#define CALINTERVAL 180*1000
 
-// Pins for MH-Z19
+// Pins für den MH-Z19b
 #define RX_PIN 16
 #define TX_PIN 17
 
-// Pins for SD1306
+// Pins für das SD1306 OLED-Display
 #define SDA_PIN 21
 #define SCL_PIN 22
 
-// Pin for LED
+// Pin für den LED-Ring
 #define LED_PIN 4
 
-// number of LEDs connected
-#define NUMPIXELS 12
+// Anzahl der angeschlossenen LEDs am Ring
+#define NUMPIXELS 8
 
 Preferences preferences;
 
@@ -49,17 +50,17 @@ void switchBootMode(int bm){
   switch (bm){
     case 23:
       preferences.putUInt("cal", 42);
-      Serial.println("startmodus naechster reboot: messmodus");
+      Serial.println("Startmodus nächster Reboot: Messmodus");
       break;
     case 42:
       preferences.putUInt("cal", 23);
-      Serial.println("startmodus naechster reboot: kalibrierungsmodus");
+      Serial.println("Startmodus nächster Reboot: Kalibrierungsmodus");
       break;
     case 69:
-      Serial.println("EEPROM lesen war nicht moeglich!");
+      Serial.println("EEPROM lesen war nicht möglich!");
       break;
     default:
-      Serial.print("EEPROM lesen lieferte unerwarteten wert: ");
+      Serial.print("EEPROM lesen lieferte unerwarteten Wert: ");
       Serial.println(bm);
       break;
   }
@@ -69,11 +70,23 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Starte...");
   Serial.print("CO2-Ampel Firmware: ");Serial.println(ampelversion);
-  
+
+  // Ab hier Bootmodus initialisieren und festlegen
   preferences.begin("co2", false);
-  tocalibrateornot = preferences.getUInt("cal",69); // wir lesen unser flag ein, 23 = reboot vor safezone, wir wollen kalibrieren, 42 = reboot nach safezone, wir tun nichts
+  tocalibrateornot = preferences.getUInt("cal",69); // wir lesen unser flag ein,
+                                                    // 23 = reboot vor safezone, wir wollen kalibrieren,
+                                                    // 42 = reboot nach safezone, wir tun nichts
   preferences.putUInt("cal", 23);  // wir sind gerade gestartet
-  
+  switch(tocalibrateornot){
+    case 23:
+      Serial.println("Startmodus Aktuell: Kalibrierungsmodus");
+      break;
+    case 42:
+      Serial.println("Startmodus Aktuell: Messmodus");
+      break;
+  }
+
+  // Ab hier Display einrichten
   display.init();
   display.setFont(Cousine_Regular_54);
   display.setContrast(255);
@@ -85,9 +98,10 @@ void setup() {
   display.display();
   dheight = display.getHeight();
   
+  // Ab hier Sensor einrichten
   mySerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   myMHZ19.begin(mySerial);
-  myMHZ19.autoCalibration(false); // baseline calibration erstmal aus
+  myMHZ19.autoCalibration(false); // "Automatic Baseline Calibration" (ABC) erstmal aus
   char myVersion[4];          
   myMHZ19.getVersion(myVersion);
   Serial.print("\nMH-Z19b Firmware Version: ");
@@ -98,20 +112,12 @@ void setup() {
   Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
   Serial.print("read EEPROM value: ");  Serial.println(tocalibrateornot);
 
-  switch(tocalibrateornot){
-    case 23:
-      Serial.println("startmodus aktuell: kalibrierungsmodus");
-      break;
-    case 42:
-      Serial.println("startmodus aktuell: messmodus");
-      break;
-  }
-
-  // Pre-Fill array of last measurements with -1
+  // Liste der Messwerte mit "-1" befüllen ("-1" wird beinm Graph nicht gezeichnet)
   for (int x = 0; x <= 119; x = x + 1) {
     lastvals[x] = -1;
   }
   
+  // Ab hier LED-Ring konfigurien
   pixels.begin();
   pixels.clear();
   for(int i=0; i<NUMPIXELS; i++) {
@@ -119,7 +125,7 @@ void setup() {
     pixels.show(); 
   }
 
-  switchBootMode(tocalibrateornot); // beim naechsten boot im anderen modus starten
+  switchBootMode(tocalibrateornot); // beim nächsten boot im anderen modus starten
 }
 
 int calc_vpos_for_co2(int co2val, int display_height) {
@@ -128,17 +134,18 @@ int calc_vpos_for_co2(int co2val, int display_height) {
 
 void set_led_color(int co2) {
   if (co2 < GREEN_CO2) {
-    // Green
+    // Grün
+    pixels.
       for(int i=0; i<NUMPIXELS; i++) {
         pixels.setPixelColor(i, 30,0,0);
       }
   } else if (co2 < YELLOW_CO2) {
-    // Yellow
+    // Gelb
           for(int i=0; i<NUMPIXELS; i++) {
         pixels.setPixelColor(i, 40,40,0);
       }
   } else {
-    // Red
+    // Rot
               for(int i=0; i<NUMPIXELS; i++) {
         pixels.setPixelColor(i, 0,90,0);
       }
@@ -177,15 +184,15 @@ void calibrateCO2(){
 }
 void readco2(){
   if (millis() - getDataTimer >= INTERVAL) {
-    // Get new CO² value.
+    // Neuen CO2 Wert lesen
     int CO2 = myMHZ19.getCO2();
-    // Shift entries in array back one position.
+    // Alle Werte in der Messwertliste um eins verschieben
     for (int x = 1; x <= 119; x = x + 1) {
       lastvals[x - 1] = lastvals[x];
     }
-    // Add new measurement at the end.
+    // Aktuellen Messer am Ende einfügen
     lastvals[119] = CO2;
-    // Clear display and redraw whole graph.
+    // Display löschen und alles neu schreiben/zeichnen
     display.clear();
     for (int h = 1; h < 120; h = h + 1) {
       int curval = lastvals[h];
@@ -195,7 +202,7 @@ void readco2(){
         display.drawLine(h - 1, vpos_last, h, vpos);
       }
     }
-    // Set LED color and print value on display
+    // Farbe des LED-Rings setzen
     if (tocalibrateornot == 42) {set_led_color(CO2);}
     //display.setLogBuffer(1, 30);
     display.setFont(Cousine_Regular_54);
@@ -203,7 +210,7 @@ void readco2(){
     display.drawString(64 ,0 , String(CO2));
     //display.drawLogBuffer(0, 0);
     display.display();
-    // Debug output
+    // Ein wenig Debug-Ausgabe
     Serial.print("CO2 (ppm): ");
     Serial.print(CO2);
     Serial.print(" Background CO2: " + String(myMHZ19.getBackgroundCO2()));
