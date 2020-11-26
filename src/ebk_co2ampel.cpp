@@ -15,6 +15,11 @@
 // Dauer der Kalibrierungsphase in Milisekunden
 #define CALINTERVAL 180*1000
 
+// Boot-Mode Konstanten
+#define BOOT_NORMAL    42
+#define BOOT_CALIBRATE 23
+#define BOOT_UNKNOWN   63
+
 // Pins für den MH-Z19b
 #define RX_PIN 16
 #define TX_PIN 17
@@ -30,33 +35,31 @@
 #define NUMPIXELS 8
 
 Preferences preferences;
-
 MHZ19 myMHZ19;
 HardwareSerial mySerial(1);
 SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN);
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_KHZ800);
  
+String ampelversion = "0.12";
 unsigned long getDataTimer = 0;
 unsigned long getDataTimer1 = 0;
 int countdown = 0;
 int lastvals[120];
 int dheight;
-String ampelversion = "0.11";
-int safezone = 1;
+int safezone = false;
 int tocalibrateornot;
-int initloop = 1;
 
 void switchBootMode(int bm){
   switch (bm){
-    case 23:
-      preferences.putUInt("cal", 42);
+    case BOOT_CALIBRATE:
+      preferences.putUInt("cal", BOOT_NORMAL);
       Serial.println("Startmodus nächster Reboot: Messmodus");
       break;
-    case 42:
-      preferences.putUInt("cal", 23);
+    case BOOT_NORMAL:
+      preferences.putUInt("cal", BOOT_CALIBRATE);
       Serial.println("Startmodus nächster Reboot: Kalibrierungsmodus");
       break;
-    case 69:
+    case BOOT_UNKNOWN:
       Serial.println("EEPROM lesen war nicht möglich!");
       break;
     default:
@@ -73,15 +76,15 @@ void setup() {
 
   // Ab hier Bootmodus initialisieren und festlegen
   preferences.begin("co2", false);
-  tocalibrateornot = preferences.getUInt("cal",69); // wir lesen unser flag ein,
+  tocalibrateornot = preferences.getUInt("cal", BOOT_UNKNOWN); // wir lesen unser flag ein,
                                                     // 23 = reboot vor safezone, wir wollen kalibrieren,
                                                     // 42 = reboot nach safezone, wir tun nichts
-  preferences.putUInt("cal", 23);  // wir sind gerade gestartet
+  preferences.putUInt("cal", BOOT_CALIBRATE);  // wir sind gerade gestartet
   switch(tocalibrateornot){
-    case 23:
+    case BOOT_CALIBRATE:
       Serial.println("Startmodus Aktuell: Kalibrierungsmodus");
       break;
-    case 42:
+    case BOOT_NORMAL:
       Serial.println("Startmodus Aktuell: Messmodus");
       break;
   }
@@ -166,7 +169,7 @@ void calibrateCO2() {
   delay(500);
   
   display.clear(); display.drawString(64, 0, "Fertig!"); display.display();
-  preferences.putUInt("cal", 42);
+  preferences.putUInt("cal", BOOT_NORMAL);
   delay(2000);
 
   display.clear(); display.setFont(Cousine_Regular_54);
@@ -193,7 +196,7 @@ void readCO2(){
       }
     }
     // Farbe des LED-Rings setzen
-    if (tocalibrateornot == 42) {set_led_color(CO2);}
+    if (tocalibrateornot == BOOT_NORMAL) { set_led_color(CO2); }
     //display.setLogBuffer(1, 30);
     display.setFont(Cousine_Regular_54);
     display.setTextAlignment(TEXT_ALIGN_CENTER);
@@ -213,39 +216,30 @@ void readCO2(){
 }
 
 void loop() {
-  if (initloop == 1) {
-    if (millis() > 10000) {
-      Serial.println("=== safe zone ===");
-      switchBootMode(23);
-      // preferences.putUInt("cal", 42);  // wir haben die safe zone erreicht, beim naechsten boot nicht kalibrieren!
-      safezone = 0; initloop = 0;
-      }
-    }
+  if (millis() > 10000) {
+    Serial.println("=== 10 Sekunden im Betrieb, nächster Boot im Normalmodus ===");
+    switchBootMode(BOOT_CALIBRATE);
+    // preferences.putUInt("cal", NORMAL);  // wir haben die safe zone erreicht, beim naechsten boot nicht kalibrieren!
+    safezone = true;
+  }
   
-  if (safezone == 0){    
-      if (tocalibrateornot == 23){          
-          if (millis() - getDataTimer1 <= CALINTERVAL) {
-            rainbow(10);
-            display.clear();
-            display.setTextAlignment(TEXT_ALIGN_CENTER);
-            //countdown = (CALINTERVAL - (getDataTimer1 + millis() * -1)) / 1000;
-            //countdown = (millis() + getDataTimer1 - CALINTERVAL) * -1 / 1000;
-            countdown = ((getDataTimer1 + CALINTERVAL) - millis()) / 1000;
-            Serial.println("Countdown: " + String(countdown));
-            display.drawString(64, 0, String(countdown));
-            display.display();
-            }
-          else if (millis() - getDataTimer1 >= CALINTERVAL) {
-            calibrateCO2();
-            getDataTimer1 = millis();
-             }
+  if (safezone){    
+    if (tocalibrateornot == BOOT_CALIBRATE){          
+      if (millis() - getDataTimer1 <= CALINTERVAL) {
+        rainbow(10);
+        display.clear();
+        display.setTextAlignment(TEXT_ALIGN_CENTER);
+        //countdown = (CALINTERVAL - (getDataTimer1 + millis() * -1)) / 1000;
+        //countdown = (millis() + getDataTimer1 - CALINTERVAL) * -1 / 1000;
+        countdown = ((getDataTimer1 + CALINTERVAL) - millis()) / 1000;
+        Serial.println("Countdown: " + String(countdown));
+        display.drawString(64, 0, String(countdown));
+        display.display();
         }
-    else if (tocalibrateornot ==42) {
-      if(initloop==1){
-        Serial.println("fake news, nobody has the intention to do calibration....");
-        initloop=0;
+      else if (millis() - getDataTimer1 >= CALINTERVAL) {
+        calibrateCO2();
+        getDataTimer1 = millis();
       }
-
     }
   }
   
