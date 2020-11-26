@@ -152,7 +152,7 @@ void set_led_color(int co2) {
   } else if (co2 < YELLOW_CO2) {
     pixels.fill(pixels.Color(40,40,0));     // Gelb
   } else {
-    pixels.fill(pixels.Color(0,0,90));      // Rot
+    pixels.fill(pixels.Color(90,0,0));      // Rot
   }
   pixels.show();
 }
