@@ -65,18 +65,15 @@ void switchBootMode(int bm){
   }
 }
 
-
 void setup() {
   Serial.begin(115200);
+  Serial.println("Starte...");
+  Serial.print("CO2-Ampel Firmware: ");Serial.println(ampelversion);
+  
   preferences.begin("co2", false);
   tocalibrateornot = preferences.getUInt("cal",69); // wir lesen unser flag ein, 23 = reboot vor safezone, wir wollen kalibrieren, 42 = reboot nach safezone, wir tun nichts
-  
   preferences.putUInt("cal", 23);  // wir sind gerade gestartet
   
-  mySerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
-  myMHZ19.begin(mySerial);
-  myMHZ19.autoCalibration(false); // baseline calibration erstmal aus
-  pixels.clear();
   display.init();
   display.setFont(Cousine_Regular_54);
   display.setContrast(255);
@@ -88,27 +85,18 @@ void setup() {
   display.display();
   dheight = display.getHeight();
   
-  Serial.println("boot...");
-  Serial.println(ampelversion);
+  mySerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+  myMHZ19.begin(mySerial);
+  myMHZ19.autoCalibration(false); // baseline calibration erstmal aus
   char myVersion[4];          
   myMHZ19.getVersion(myVersion);
-  Serial.print("\nFirmware Version: ");
-  for(byte i = 0; i < 4; i++)
-    {
-      Serial.print(myVersion[i]);
-      if(i == 1)
-      Serial.print(".");    
-     }
-  Serial.println("");
-  Serial.print("Range: ");
-  Serial.println(myMHZ19.getRange());   
-  Serial.print("Background CO2: ");
-  Serial.println(myMHZ19.getBackgroundCO2());
-  Serial.print("Temperature Cal: ");
-  Serial.println(myMHZ19.getTempAdjustment());
+  Serial.print("\nMH-Z19b Firmware Version: ");
+  Serial.print(myVersion[0]);Serial.print(myVersion[1]);;Serial.print(".");Serial.print(myVersion[2]);Serial.println(myVersion[3]);
+  Serial.print("Range: ");  Serial.println(myMHZ19.getRange());   
+  Serial.print("Background CO2: ");  Serial.println(myMHZ19.getBackgroundCO2());
+  Serial.print("Temperature Cal: ");  Serial.println(myMHZ19.getTempAdjustment());
   Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
-  Serial.print("read EEPROM value: ");
-  Serial.println(tocalibrateornot);
+  Serial.print("read EEPROM value: ");  Serial.println(tocalibrateornot);
 
   switch(tocalibrateornot){
     case 23:
@@ -119,13 +107,13 @@ void setup() {
       break;
   }
 
-
-  // Fill array of last measurements with -1
+  // Pre-Fill array of last measurements with -1
   for (int x = 0; x <= 119; x = x + 1) {
     lastvals[x] = -1;
   }
   
   pixels.begin();
+  pixels.clear();
   for(int i=0; i<NUMPIXELS; i++) {
     pixels.setPixelColor(i, 0,0,50);
     pixels.show(); 
