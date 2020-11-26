@@ -42,7 +42,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_K
  
 String ampelversion = "0.12";
 unsigned long getDataTimer = 0;
-unsigned long getDataTimer1 = 0;
+unsigned long calibrationStart = 0;
 int countdown = 0;
 int lastvals[120];
 int dheight;
@@ -86,14 +86,20 @@ void setup() {
   // Ab hier Bootmodus initialisieren und festlegen
   preferences.begin("co2", false);
   currentBootMode = preferences.getUInt("cal", BOOT_UNKNOWN);  // Aktuellen Boot-Mode lesen und speichern
-  preferences.putUInt("cal", BOOT_CALIBRATE);    // Erstmal Boot-Mode auf Kalibrieren setzen, wird später 
-                                                 // nach 10 Sekunden Betrieb auf Normal geändert.
+
   switch(currentBootMode){
     case BOOT_CALIBRATE:
       Serial.println("Startmodus Aktuell: Kalibrierungsmodus");
+      toggleBootMode(currentBootMode); // beim nächsten boot ggfs. im anderen modus starten, wird später nach 10 Sekunden zurückgesetzt
       break;
     case BOOT_NORMAL:
       Serial.println("Startmodus Aktuell: Messmodus");
+      toggleBootMode(currentBootMode); // beim nächsten boot ggfs. im anderen modus starten, wird später nach 10 Sekunden zurückgesetzt
+      break;
+    default:
+      Serial.println("Startmodus Aktuell: Unbekannt oder Ungültig");
+      Serial.println("Nächster Start im Messmodus");
+      setBootMode(BOOT_NORMAL);
       break;
   }
 
@@ -134,7 +140,6 @@ void setup() {
   pixels.fill(pixels.Color(0,0,0));
   pixels.show(); 
   
-  toggleBootMode(currentBootMode); // beim nächsten boot im anderen modus starten
 }
 
 int calc_vpos_for_co2(int co2val, int display_height) {
@@ -143,7 +148,7 @@ int calc_vpos_for_co2(int co2val, int display_height) {
 
 void set_led_color(int co2) {
   if (co2 < GREEN_CO2) {
-    pixels.fill(pixels.Color(10,0,0));      // Grün
+    pixels.fill(pixels.Color(1,0,0));      // Grün
   } else if (co2 < YELLOW_CO2) {
     pixels.fill(pixels.Color(40,40,0));     // Gelb
   } else {
@@ -205,18 +210,20 @@ void readCO2(){
     }
     // Farbe des LED-Rings setzen
     if (currentBootMode == BOOT_NORMAL) { set_led_color(CO2); }
+    
+    // Aktuellen CO2 Wert ausgeben
     //display.setLogBuffer(1, 30);
     display.setFont(Cousine_Regular_54);
     display.setTextAlignment(TEXT_ALIGN_CENTER);
     display.drawString(64 ,0 , String(CO2));
     //display.drawLogBuffer(0, 0);
     display.display();
+    
     // Ein wenig Debug-Ausgabe
     Serial.print("Neue Messung - Aktueller CO2-Wert: ");
     Serial.print(CO2);
     Serial.print("; Background CO2: " + String(myMHZ19.getBackgroundCO2()));
     Serial.print("; Temperatur: " + String(myMHZ19.getTemperature()) + " Temperature Adjustment: " + String(myMHZ19.getTempAdjustment()));
-    //Serial.print(myMHZ19.getBackgroundCO2());
     Serial.println("; uptime: " + uptime_formatter::getUptime());
 
     getDataTimer = millis();
@@ -224,28 +231,27 @@ void readCO2(){
 }
 
 void loop() {
+  // Nur für die ersten 10 Sekunden wichtig,
   if ( (!safezone) & (millis() > 10000) ) {
-    Serial.println("=== 10 Sekunden im Betrieb, nächster Boot im Normalmodus ===");
+    Serial.println("=== 10 Sekunden im Betrieb, nächster Boot im Messmodus ===");
     setBootMode(BOOT_NORMAL);   //
     safezone = true;
   }
   
-  if (safezone){    
+  if (safezone) {    
     if (currentBootMode == BOOT_CALIBRATE){          
-      if (millis() - getDataTimer1 <= CALINTERVAL) {
+      if (millis() - calibrationStart <= CALINTERVAL) {
         rainbow(10);
         display.clear();
         display.setTextAlignment(TEXT_ALIGN_CENTER);
-        //countdown = (CALINTERVAL - (getDataTimer1 + millis() * -1)) / 1000;
-        //countdown = (millis() + getDataTimer1 - CALINTERVAL) * -1 / 1000;
-        countdown = ((getDataTimer1 + CALINTERVAL) - millis()) / 1000;
+        countdown = ((calibrationStart + CALINTERVAL) - millis()) / 1000;
         Serial.println("Countdown: " + String(countdown));
         display.drawString(64, 0, String(countdown));
         display.display();
         }
-      else if (millis() - getDataTimer1 >= CALINTERVAL) {
+      else if (millis() - calibrationStart >= CALINTERVAL) {
         calibrateCO2();
-        getDataTimer1 = millis();
+        calibrationStart = millis();
       }
     }
   }
