@@ -120,11 +120,9 @@ void setup() {
   // Ab hier LED-Ring konfigurien
   pixels.begin();
   pixels.clear();
-  for(int i=0; i<NUMPIXELS; i++) {
-    pixels.setPixelColor(i, 0,0,50);
-    pixels.show(); 
-  }
-
+  pixels.fill(pixels.Color(0,0,0));
+  pixels.show(); 
+  
   switchBootMode(tocalibrateornot); // beim nächsten boot im anderen modus starten
 }
 
@@ -134,21 +132,11 @@ int calc_vpos_for_co2(int co2val, int display_height) {
 
 void set_led_color(int co2) {
   if (co2 < GREEN_CO2) {
-    // Grün
-    pixels.
-      for(int i=0; i<NUMPIXELS; i++) {
-        pixels.setPixelColor(i, 30,0,0);
-      }
+    pixels.fill(pixels.Color(10,0,0));      // Grün
   } else if (co2 < YELLOW_CO2) {
-    // Gelb
-          for(int i=0; i<NUMPIXELS; i++) {
-        pixels.setPixelColor(i, 40,40,0);
-      }
+    pixels.fill(pixels.Color(40,40,0));     // Gelb
   } else {
-    // Rot
-              for(int i=0; i<NUMPIXELS; i++) {
-        pixels.setPixelColor(i, 0,90,0);
-      }
+    pixels.fill(pixels.Color(0,0,90));      // Rot
   }
   pixels.show();
 }
