@@ -38,7 +38,7 @@ Preferences preferences;
 MHZ19 myMHZ19;
 HardwareSerial mySerial(1);
 SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN);
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
  
 String ampelversion = "0.12";
 unsigned long getDataTimer = 0;
@@ -148,9 +148,10 @@ int calc_vpos_for_co2(int co2val, int display_height) {
 
 void set_led_color(int co2) {
   if (co2 < GREEN_CO2) {
-    pixels.fill(pixels.Color(1,0,0));      // Grün
+    pixels.fill(pixels.Color(0,0,0));      // Grün
+    pixels.setPixelColor(4,pixels.Color(0,2,0));
   } else if (co2 < YELLOW_CO2) {
-    pixels.fill(pixels.Color(40,40,0));     // Gelb
+    pixels.fill(pixels.Color(40,30,0));     // Gelb
   } else {
     pixels.fill(pixels.Color(90,0,0));      // Rot
   }
