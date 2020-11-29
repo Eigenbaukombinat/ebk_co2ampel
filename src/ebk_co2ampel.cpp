@@ -18,7 +18,7 @@
 // Boot-Mode Konstanten
 #define BOOT_NORMAL    42
 #define BOOT_CALIBRATE 23
-#define BOOT_UNKNOWN   63
+#define BOOT_UNKNOWN   69
 
 // Pins für den MH-Z19b
 #define RX_PIN 16
