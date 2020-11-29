@@ -53,10 +53,12 @@ void setBootMode(int bootMode) {
   if(bootMode == BOOT_NORMAL) { 
     Serial.println("Startmodus nächster Reboot: Messmodus");
     preferences.putUInt("cal", bootMode);
+    if (bootMode != preferences.getUInt("cal", BOOT_UNKNOWN)) Serial.println("Konnte neuen Bootmodus nicht schreiben :-(");
   }
   else if(bootMode == BOOT_CALIBRATE) {
     Serial.println("Startmodus nächster Reboot: Kalibrierungsmodus");
     preferences.putUInt("cal", bootMode);
+    if (bootMode != preferences.getUInt("cal", BOOT_UNKNOWN)) Serial.println("Konnte neuen Bootmodus nicht schreiben :-(");
   } else {
     Serial.println("Unerwarteter Boot-Mode soll gespeichert werden. Abgebrochen.");
   } 
@@ -147,15 +149,36 @@ int calc_vpos_for_co2(int co2val, int display_height) {
 }
 
 void set_led_color(int co2) {
+  static char blinkState=0;
+  static signed char blinkDirection=1;
+  static int blinkOn=0;
+  static int blinkOff=0;
+
   if (co2 < GREEN_CO2) {
     pixels.fill(pixels.Color(0,0,0));      // Grün
     pixels.setPixelColor(4,pixels.Color(0,2,0));
   } else if (co2 < YELLOW_CO2) {
     pixels.fill(pixels.Color(40,30,0));     // Gelb
   } else {
-    pixels.fill(pixels.Color(90,0,0));      // Rot
+    blinkState+=blinkDirection;
+    if( (blinkState<90) & (blinkState>0) ) {
+      pixels.fill(pixels.Color(blinkState,00,0));  
+    }
+    else if (blinkState==90) {
+      blinkDirection=0; blinkOn++;
+      if(blinkOn==400) {
+        blinkOn=0; blinkDirection=-1; blinkState=89;
+      }
+    }
+    else if (blinkState==0) {
+      blinkDirection=0; blinkOff++;
+      if(blinkOff==50) {
+        blinkOff=0; blinkDirection=1; blinkState=1;
+      }
+    }
   }
   pixels.show();
+  delay(10);
 }
 
 
@@ -189,16 +212,18 @@ void calibrateCO2() {
   display.clear(); display.setFont(Cousine_Regular_54);
 }
 
-void readCO2(){
+int readCO2(){
+  static int co2=400;
+
   if (millis() - getDataTimer >= INTERVAL) {
     // Neuen CO2 Wert lesen
-    int CO2 = myMHZ19.getCO2();
+    co2 = myMHZ19.getCO2();
     // Alle Werte in der Messwertliste um eins verschieben
     for (int x = 1; x <= 119; x = x + 1) {
       lastvals[x - 1] = lastvals[x];
     }
     // Aktuellen Messer am Ende einfügen
-    lastvals[119] = CO2;
+    lastvals[119] = co2;
     // Display löschen und alles neu schreiben/zeichnen
     display.clear();
     for (int h = 1; h < 120; h = h + 1) {
@@ -209,29 +234,30 @@ void readCO2(){
         display.drawLine(h - 1, vpos_last, h, vpos);
       }
     }
-    // Farbe des LED-Rings setzen
-    if (currentBootMode == BOOT_NORMAL) { set_led_color(CO2); }
-    
+   
     // Aktuellen CO2 Wert ausgeben
     //display.setLogBuffer(1, 30);
     display.setFont(Cousine_Regular_54);
     display.setTextAlignment(TEXT_ALIGN_CENTER);
-    display.drawString(64 ,0 , String(CO2));
+    display.drawString(64 ,0 , String(co2));
     //display.drawLogBuffer(0, 0);
     display.display();
     
     // Ein wenig Debug-Ausgabe
     Serial.print("Neue Messung - Aktueller CO2-Wert: ");
-    Serial.print(CO2);
+    Serial.print(co2);
     Serial.print("; Background CO2: " + String(myMHZ19.getBackgroundCO2()));
     Serial.print("; Temperatur: " + String(myMHZ19.getTemperature()) + " Temperature Adjustment: " + String(myMHZ19.getTempAdjustment()));
     Serial.println("; uptime: " + uptime_formatter::getUptime());
 
     getDataTimer = millis();
   }
+  return co2;
 }
 
 void loop() {
+  int co2;
+  
   // Nur für die ersten 10 Sekunden wichtig,
   if ( (!safezone) & (millis() > 10000) ) {
     Serial.println("=== 10 Sekunden im Betrieb, nächster Boot im Messmodus ===");
@@ -257,6 +283,9 @@ void loop() {
     }
   }
   
-  readCO2();
+  co2 = readCO2();
+  
+  // Farbe des LED-Rings setzen
+  if(currentBootMode == BOOT_NORMAL) { set_led_color(co2); }
 }
 
