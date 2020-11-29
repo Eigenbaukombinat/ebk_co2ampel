@@ -158,7 +158,7 @@ void set_led_color(int co2) {
     pixels.fill(pixels.Color(0,0,0));      // Grün
     pixels.setPixelColor(4,pixels.Color(0,2,0));
   } else if (co2 < YELLOW_CO2) {
-    pixels.fill(pixels.Color(40,30,0));     // Gelb
+    pixels.fill(pixels.Color(50,30,0));     // Gelb
   } else {
     blinkState+=blinkDirection;
     if( (blinkState<90) & (blinkState>0) ) {
