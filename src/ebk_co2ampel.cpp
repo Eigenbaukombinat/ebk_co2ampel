@@ -40,7 +40,7 @@ HardwareSerial mySerial(1);
 SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN);
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
  
-String ampelversion = "0.12";
+String ampelversion = "0.13";
 unsigned long getDataTimer = 0;
 unsigned long calibrationStart = 0;
 int countdown = 0;
@@ -258,6 +258,9 @@ int readCO2(){
 void loop() {
   int co2;
   
+  // Achtung: readCO2() liefer nur alle "INTERVAL" ms ein neuen Wert, der alte wird aber zwischengespeichert
+  co2 = readCO2();
+  
   // Nur für die ersten 10 Sekunden wichtig,
   if ( (!safezone) & (millis() > 10000) ) {
     Serial.println("=== 10 Sekunden im Betrieb, nächster Boot im Messmodus ===");
@@ -266,6 +269,7 @@ void loop() {
   }
   
   if (safezone) {    
+    
     if (currentBootMode == BOOT_CALIBRATE){          
       if (millis() - calibrationStart <= CALINTERVAL) {
         rainbow(10);
@@ -280,12 +284,13 @@ void loop() {
         calibrateCO2();
         calibrationStart = millis();
       }
+    } else {
+
+      // Farbe des LED-Rings setzen
+      if(currentBootMode == BOOT_NORMAL) { set_led_color(co2); }
     }
   }
   
-  co2 = readCO2();
-  
-  // Farbe des LED-Rings setzen
-  if(currentBootMode == BOOT_NORMAL) { set_led_color(co2); }
+
 }
 
