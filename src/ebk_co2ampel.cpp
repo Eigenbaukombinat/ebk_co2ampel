@@ -183,8 +183,8 @@ void setup() {
   Serial.flush();
 }
 
-int calc_vpos_for_co2(int co2val, int display_height) {
-  return display_height - int((float(display_height) / 3000) * co2val);
+int calc_vpos_for_co2(int co2val, int max_height) {
+  return int((float(max_height) / (5000-350)) * (co2val-350));
 }
 
 void set_led_color(int co2) {
@@ -269,8 +269,8 @@ void updateDisplayCO2(int co2) {
     for (int h = 1; h < 120; h = h + 1) {
       int curval = lastvals[h];
       if (curval > 0) {
-        int vpos = calc_vpos_for_co2(lastvals[h], dheight);
-        int vpos_last = calc_vpos_for_co2(lastvals[h - 1], dheight);
+        int vpos = 63 - calc_vpos_for_co2(lastvals[h], 16);
+        int vpos_last = 63 - calc_vpos_for_co2(lastvals[h - 1], 16);
         display.drawLine(h - 1, vpos_last, h, vpos);
       }
     }
