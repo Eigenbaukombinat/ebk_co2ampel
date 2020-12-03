@@ -81,6 +81,7 @@ void toggleBootMode(int bootMode) {
 }
 
 void setup() {
+  int dummy;
   Serial.begin(115200);
   Serial.println("Starte...");
   Serial.print("CO2-Ampel Firmware: ");Serial.println(ampelversion);
@@ -130,6 +131,7 @@ void setup() {
   Serial.print("Temperature Cal: ");  Serial.println(myMHZ19.getTempAdjustment());
   Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
   Serial.print("read EEPROM value: ");  Serial.println(currentBootMode);
+  Serial.print("First CO2 value: ");  Serial.println(readCO2());
 
   // Liste der Messwerte mit "-1" befüllen ("-1" wird beinm Graph nicht gezeichnet)
   for (int x = 0; x <= 119; x = x + 1) {
@@ -141,7 +143,9 @@ void setup() {
   pixels.clear();
   pixels.fill(pixels.Color(0,0,0));
   pixels.show(); 
-  
+
+  // Wir lesen schonmal einen CO2 Sensorwert, da die erste Werte meist Müll sind
+  delay (5000); dummy = readCO2(); 
 }
 
 int calc_vpos_for_co2(int co2val, int display_height) {
