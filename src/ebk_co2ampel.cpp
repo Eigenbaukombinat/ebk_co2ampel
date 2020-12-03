@@ -15,7 +15,7 @@
 // Display Update-Intervall in Milisekunden
 #define DISPLAY_INTERVAL 2500
 // Dauer der Kalibrierungsphase in Milisekunden
-#define CAL_INTERVAL 300*1000
+#define CAL_INTERVAL 180*1000
 
 // Boot-Mode Konstanten
 #define BOOT_NORMAL    42
@@ -143,10 +143,10 @@ void setup() {
   display.drawString(64,  0, "Version: " + String(ampelversion));
   if(currentBootMode == BOOT_NORMAL) {
     display.drawString(64, 17, "Zum Kalibrieren");
-    display.drawString(64, 34, "Neustarten" );
+    display.drawString(64, 34, "jetzt Neustarten" );
   } else {
     display.drawString(64, 17, "Zum Messen");
-    display.drawString(64, 34, "Neustarten" );
+    display.drawString(64, 34, "jetzt Neustarten" );
   }
   display.display();
   dheight = display.getHeight();
@@ -233,8 +233,15 @@ void rainbow(int wait) {
 }
 
 void calibrateCO2() {
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.setFont(ArialMT_Plain_16);
+  display.clear();
+  display.drawString(64, 0, "! Kalibriere !");
   display.setFont(ArialMT_Plain_24);
-  display.clear();  display.drawString(64, 0, "Kalibriere!"); display.display();
+  display.drawString(64, 18, "NICHT");
+  display.setFont(ArialMT_Plain_16);
+  display.drawString(64, 44, "Neustarten");
+  display.display();
   Serial.println("Kalibrierung startet nun");
   
   myMHZ19.setRange(5000);
@@ -244,11 +251,13 @@ void calibrateCO2() {
   myMHZ19.autoCalibration(false);
   delay(500);
   
-  display.clear(); display.drawString(64, 0, "Fertig!"); display.display();
-  preferences.putUInt("cal", BOOT_NORMAL);
-  delay(2000);
-
-  display.clear(); display.setFont(Cousine_Regular_54);
+  display.clear();
+  display.setFont(ArialMT_Plain_24);
+  display.drawString(64, 0, "Fertig!");
+  display.display();
+  setBootMode(BOOT_NORMAL);
+  delay(10000);
+  display.clear();
 }
 
 void updateDisplayCO2(int co2) {
@@ -300,20 +309,20 @@ void loop() {
         display.clear();
         display.setFont(ArialMT_Plain_16);
         display.setTextAlignment(TEXT_ALIGN_LEFT);
-        display.drawString(0, 0, "SensorKalibration");
+        display.drawString(0, 0, "Kalibrierung");
         
         display.setFont(ArialMT_Plain_10);;
         display.drawString(0, 17, "Abbrechen durch Neustart");
         
         display.setTextAlignment(TEXT_ALIGN_CENTER);
         display.setFont(ArialMT_Plain_16);;
-        display.drawString(64, 35, "Rest: " + String(countdown) + " Sek.");
+        display.drawString(64, 35, "Noch: " + String(countdown) + " Sek.");
         
         display.display();
         }
       else if (millis() - calibrationStart >= CAL_INTERVAL) {
         calibrateCO2();
-        calibrationStart = millis();
+        currentBootMode = BOOT_NORMAL;  //Fertig, ab jetzt kann es normal weitergehen
       }
     } else {
       // Achtung: readCO2() liefer nur alle "INTERVAL" ms ein neuen Wert, der alte wird aber zwischengespeichert
