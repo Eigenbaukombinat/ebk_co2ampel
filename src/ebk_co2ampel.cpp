@@ -10,8 +10,10 @@
 #define GREEN_CO2 800
 #define YELLOW_CO2 1000
 
-// CO2 Messintervall in Milisekunden
-#define INTERVAL 15*1000
+// CO2 Mess-Intervall in Milisekunden
+#define CO2_INTERVAL 15*1000
+// Display Update-Intervall in Milisekunden
+#define DISPLAY_INTERVAL 2500
 // Dauer der Kalibrierungsphase in Milisekunden
 #define CALINTERVAL 180*1000
 
@@ -41,7 +43,6 @@ SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN);
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
  
 String ampelversion = "0.13";
-unsigned long getDataTimer = 0;
 unsigned long calibrationStart = 0;
 int countdown = 0;
 int lastvals[120];
@@ -80,8 +81,33 @@ void toggleBootMode(int bootMode) {
   }
 }
 
+int readCO2(){
+  static int co2=400;
+  static unsigned long getDataTimer = 0;
+  
+  if (millis() - getDataTimer >= CO2_INTERVAL) {
+    // Neuen CO2 Wert lesen
+    co2 = myMHZ19.getCO2();
+    // Alle Werte in der Messwertliste um eins verschieben
+    for (int x = 1; x <= 119; x = x + 1) {
+      lastvals[x - 1] = lastvals[x];
+    }
+    // Aktuellen Messer am Ende einfügen
+    lastvals[119] = co2;
+   
+    // Ein wenig Debug-Ausgabe
+    Serial.print("Neue Messung - Aktueller CO2-Wert: ");
+    Serial.print(co2);
+    Serial.print("; Background CO2: " + String(myMHZ19.getBackgroundCO2()));
+    Serial.print("; Temperatur: " + String(myMHZ19.getTemperature()) + " Temperature Adjustment: " + String(myMHZ19.getTempAdjustment()));
+    Serial.println("; uptime: " + uptime_formatter::getUptime());
+
+    getDataTimer = millis();
+  }
+  return co2;
+}
+
 void setup() {
-  int dummy;
   Serial.begin(115200);
   Serial.println("Starte...");
   Serial.print("CO2-Ampel Firmware: ");Serial.println(ampelversion);
@@ -131,7 +157,7 @@ void setup() {
   Serial.print("Temperature Cal: ");  Serial.println(myMHZ19.getTempAdjustment());
   Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
   Serial.print("read EEPROM value: ");  Serial.println(currentBootMode);
-  Serial.print("First CO2 value: ");  Serial.println(readCO2());
+  Serial.print("First CO2 value (should be 400): ");  Serial.println(readCO2());
 
   // Liste der Messwerte mit "-1" befüllen ("-1" wird beinm Graph nicht gezeichnet)
   for (int x = 0; x <= 119; x = x + 1) {
@@ -145,7 +171,8 @@ void setup() {
   pixels.show(); 
 
   // Wir lesen schonmal einen CO2 Sensorwert, da die erste Werte meist Müll sind
-  delay (5000); dummy = readCO2(); 
+  delay (5000); readCO2(); 
+  Serial.print("Second CO2 value: ");  Serial.println(readCO2());
 }
 
 int calc_vpos_for_co2(int co2val, int display_height) {
@@ -216,18 +243,10 @@ void calibrateCO2() {
   display.clear(); display.setFont(Cousine_Regular_54);
 }
 
-int readCO2(){
-  static int co2=400;
-
-  if (millis() - getDataTimer >= INTERVAL) {
-    // Neuen CO2 Wert lesen
-    co2 = myMHZ19.getCO2();
-    // Alle Werte in der Messwertliste um eins verschieben
-    for (int x = 1; x <= 119; x = x + 1) {
-      lastvals[x - 1] = lastvals[x];
-    }
-    // Aktuellen Messer am Ende einfügen
-    lastvals[119] = co2;
+void updateDisplayCO2(int co2) {
+  static unsigned long getUpdateTimer = 0;
+  
+  if (millis() - getUpdateTimer >= DISPLAY_INTERVAL) {
     // Display löschen und alles neu schreiben/zeichnen
     display.clear();
     for (int h = 1; h < 120; h = h + 1) {
@@ -238,7 +257,6 @@ int readCO2(){
         display.drawLine(h - 1, vpos_last, h, vpos);
       }
     }
-   
     // Aktuellen CO2 Wert ausgeben
     //display.setLogBuffer(1, 30);
     display.setFont(Cousine_Regular_54);
@@ -247,23 +265,13 @@ int readCO2(){
     //display.drawLogBuffer(0, 0);
     display.display();
     
-    // Ein wenig Debug-Ausgabe
-    Serial.print("Neue Messung - Aktueller CO2-Wert: ");
-    Serial.print(co2);
-    Serial.print("; Background CO2: " + String(myMHZ19.getBackgroundCO2()));
-    Serial.print("; Temperatur: " + String(myMHZ19.getTemperature()) + " Temperature Adjustment: " + String(myMHZ19.getTempAdjustment()));
-    Serial.println("; uptime: " + uptime_formatter::getUptime());
-
-    getDataTimer = millis();
+    // Fertig mit update; Zeitpunkt für das nächste Update speichern
+    getUpdateTimer = millis();
   }
-  return co2;
 }
 
 void loop() {
   int co2;
-  
-  // Achtung: readCO2() liefer nur alle "INTERVAL" ms ein neuen Wert, der alte wird aber zwischengespeichert
-  co2 = readCO2();
   
   // Nur für die ersten 10 Sekunden wichtig,
   if ( (!safezone) & (millis() > 10000) ) {
@@ -273,7 +281,6 @@ void loop() {
   }
   
   if (safezone) {    
-    
     if (currentBootMode == BOOT_CALIBRATE){          
       if (millis() - calibrationStart <= CALINTERVAL) {
         rainbow(10);
@@ -289,12 +296,15 @@ void loop() {
         calibrationStart = millis();
       }
     } else {
+      // Achtung: readCO2() liefer nur alle "INTERVAL" ms ein neuen Wert, der alte wird aber zwischengespeichert
+      co2 = readCO2();
+  
+      // Update Display
+      updateDisplayCO2(co2);
 
       // Farbe des LED-Rings setzen
       if(currentBootMode == BOOT_NORMAL) { set_led_color(co2); }
     }
   }
-  
-
 }
 
