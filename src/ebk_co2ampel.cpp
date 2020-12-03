@@ -15,7 +15,7 @@
 // Display Update-Intervall in Milisekunden
 #define DISPLAY_INTERVAL 2500
 // Dauer der Kalibrierungsphase in Milisekunden
-#define CALINTERVAL 180*1000
+#define CAL_INTERVAL 300*1000
 
 // Boot-Mode Konstanten
 #define BOOT_NORMAL    42
@@ -42,13 +42,12 @@ HardwareSerial mySerial(1);
 SSD1306Wire  display(0x3c, SDA_PIN, SCL_PIN);
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
  
-String ampelversion = "0.13";
-unsigned long calibrationStart = 0;
-int countdown = 0;
+String ampelversion = "0.50";
+
 int lastvals[120];
 int dheight;
-int safezone = false;
 int currentBootMode;
+
 
 void setBootMode(int bootMode) {
   if(bootMode == BOOT_NORMAL) { 
@@ -134,13 +133,21 @@ void setup() {
 
   // Ab hier Display einrichten
   display.init();
-  display.setFont(Cousine_Regular_54);
+  // display.setLogBuffer(5,30);
   display.setContrast(255);
   delay(500);
   display.clear();
   display.flipScreenVertically();
+  display.setFont(ArialMT_Plain_16);
   display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.drawString(64 ,0 , String(ampelversion));
+  display.drawString(64,  0, "Version: " + String(ampelversion));
+  if(currentBootMode == BOOT_NORMAL) {
+    display.drawString(64, 17, "Zum Kalibrieren");
+    display.drawString(64, 34, "Neustarten" );
+  } else {
+    display.drawString(64, 17, "Zum Messen");
+    display.drawString(64, 34, "Neustarten" );
+  }
   display.display();
   dheight = display.getHeight();
   
@@ -158,12 +165,12 @@ void setup() {
   Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");
   Serial.print("read EEPROM value: ");  Serial.println(currentBootMode);
   Serial.print("First CO2 value (should be 400): ");  Serial.println(readCO2());
-
+ 
   // Liste der Messwerte mit "-1" befüllen ("-1" wird beinm Graph nicht gezeichnet)
   for (int x = 0; x <= 119; x = x + 1) {
     lastvals[x] = -1;
   }
-  
+ 
   // Ab hier LED-Ring konfigurien
   pixels.begin();
   pixels.clear();
@@ -171,8 +178,9 @@ void setup() {
   pixels.show(); 
 
   // Wir lesen schonmal einen CO2 Sensorwert, da die erste Werte meist Müll sind
-  delay (5000); readCO2(); 
+  delay(5000);
   Serial.print("Second CO2 value: ");  Serial.println(readCO2());
+  Serial.flush();
 }
 
 int calc_vpos_for_co2(int co2val, int display_height) {
@@ -258,11 +266,9 @@ void updateDisplayCO2(int co2) {
       }
     }
     // Aktuellen CO2 Wert ausgeben
-    //display.setLogBuffer(1, 30);
     display.setFont(Cousine_Regular_54);
     display.setTextAlignment(TEXT_ALIGN_CENTER);
     display.drawString(64 ,0 , String(co2));
-    //display.drawLogBuffer(0, 0);
     display.display();
     
     // Fertig mit update; Zeitpunkt für das nächste Update speichern
@@ -271,27 +277,41 @@ void updateDisplayCO2(int co2) {
 }
 
 void loop() {
+  static unsigned long calibrationStart = 0;
+  static int countdown = 0;
+  static int safezone = false;
+
   int co2;
   
   // Nur für die ersten 10 Sekunden wichtig,
   if ( (!safezone) & (millis() > 10000) ) {
     Serial.println("=== 10 Sekunden im Betrieb, nächster Boot im Messmodus ===");
-    setBootMode(BOOT_NORMAL);   //
+    setBootMode(BOOT_NORMAL); 
     safezone = true;
   }
   
   if (safezone) {    
     if (currentBootMode == BOOT_CALIBRATE){          
-      if (millis() - calibrationStart <= CALINTERVAL) {
+      if (millis() - calibrationStart <= CAL_INTERVAL) {
         rainbow(10);
-        display.clear();
-        display.setTextAlignment(TEXT_ALIGN_CENTER);
-        countdown = ((calibrationStart + CALINTERVAL) - millis()) / 1000;
+        countdown = ((calibrationStart + CAL_INTERVAL) - millis()) / 1000;
         Serial.println("Countdown: " + String(countdown));
-        display.drawString(64, 0, String(countdown));
+
+        display.clear();
+        display.setFont(ArialMT_Plain_16);
+        display.setTextAlignment(TEXT_ALIGN_LEFT);
+        display.drawString(0, 0, "SensorKalibration");
+        
+        display.setFont(ArialMT_Plain_10);;
+        display.drawString(0, 17, "Abbrechen durch Neustart");
+        
+        display.setTextAlignment(TEXT_ALIGN_CENTER);
+        display.setFont(ArialMT_Plain_16);;
+        display.drawString(64, 35, "Rest: " + String(countdown) + " Sek.");
+        
         display.display();
         }
-      else if (millis() - calibrationStart >= CALINTERVAL) {
+      else if (millis() - calibrationStart >= CAL_INTERVAL) {
         calibrateCO2();
         calibrationStart = millis();
       }
