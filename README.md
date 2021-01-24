@@ -42,7 +42,7 @@ Eine RGB-LED zeigt rot, gelb oder grün, je nach Messwert.
 
 Wir benutzen die PlatformIO IDE. Dort kann das Projekt geöffnet und mit Klick auf "Upload" compiliert und auf den ESP32 geladen werden.
 
-Alternativ kann die Datei [unhb-co2-ampel-v0.5.bin](https://git.unhb.de/smash/ebk-unhb-co2ampel/src/branch/main/unhb-co2-ampel-v0.5.bin) hier runtergeladen werden und z.B. mit dem esptool.py mit
+Alternativ kann die Datei [unhb-co2-ampel-v0.5.bin](https://git.un-hack-bar.de/attachments/7523cdf6-e352-48f8-beb3-f87b23087f64) hier runtergeladen werden und z.B. mit dem esptool.py mit
 
     esptool.py write_flash 0x0000 unhb-co2-ampel-v0.5.bin
 
