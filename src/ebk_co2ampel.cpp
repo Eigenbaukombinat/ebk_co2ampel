@@ -246,7 +246,7 @@ void calibrateCO2() {
   
   myMHZ19.setRange(5000);
   delay(500);
-  myMHZ19.calibrateZero();
+  myMHZ19.calibrate();
   delay(500);
   myMHZ19.autoCalibration(false);
   delay(500);
