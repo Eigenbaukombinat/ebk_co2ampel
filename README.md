@@ -48,6 +48,10 @@ Alternativ kann die Datei [unhb-co2-ampel-v0.5.bin](https://git.unhb.de/smash/eb
 
 auf dem Mikrocontroller programmiert werden.
 
+## Konfiguration
+
+Wir haben die konfiguration in `include/config.h` ausgelagert.
+
 ## Wiring
 
 bild: todo
