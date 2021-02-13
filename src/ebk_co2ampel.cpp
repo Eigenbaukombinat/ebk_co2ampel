@@ -7,6 +7,9 @@
 #include <Preferences.h>
 #include "uptime_formatter.h"
 
+#ifdef enable_DHT
+  #include "dht_sensor.h"
+  long lastMsg = 0;
 #endif
 
 
@@ -84,6 +87,10 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Starte...");
   Serial.print("CO2-Ampel Firmware: ");Serial.println(ampelversion);
+
+#ifdef enable_DHT
+  dht.begin();
+#endif
 
   // Ab hier Bootmodus initialisieren und festlegen
   preferences.begin("co2", false);
@@ -309,5 +316,10 @@ void loop() {
       if(currentBootMode == BOOT_NORMAL) { set_led_color(co2); }
     }
   }
+  long now = millis();
+  if (now - lastMsg > sampletime_ms) {
+    lastMsg = now;
+    sensorDHT();  // Temperatur, gefühlte Temperatur und Luftfeuchte
+   }
 }
 

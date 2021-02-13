@@ -28,3 +28,18 @@
 // Anzahl der angeschlossenen LEDs am Ring
 #define NUMPIXELS 8
 
+// ######## DHT Temperatur Sensor ########
+
+// Kommentiere enable_DHT aus um das laden zu deaktivieren
+#define enable_DHT
+
+// Pins für Temperatursensor DHT22
+#define DHT_PIN 18
+// DHT22 Typ
+#define DHT_TYPE DHT22
+//#define DHT_TYPE DHT11   // DHT 11
+//#define DHT_TYPE DHT22   // DHT 22  (AM2302), AM2321
+//#define DHT_TYPE DHT21   // DHT 21 (AM2301)
+
+// DHT Sensor Wartezeit zwischen messungen
+unsigned long sampletime_ms = 10000; // 10 Sekunden
